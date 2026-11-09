@@ -2,12 +2,13 @@
 
 These instructions ship with the installed binary. Run `linkding --version`
 when reporting a compatibility problem. Use this CLI to search, read, and save
-bookmarks in one existing Linkding instance.
+bookmarks and delete tags in one existing Linkding instance.
 
 ## Discover and configure
 
 Use `linkding <resource> <operation> --help` for syntax and
-`linkding schema <resource> <operation> --json` for exact input/result types.
+`linkding schema <resource> <operation> --json` for input/result types. For
+CLI-only `tags delete`, the result schema is in `output_schema`, not `tool`.
 Help, schema, version, and skills work offline without credentials.
 
 API operations require `LINKDING_URL` and `LINKDING_TOKEN` in the process
@@ -75,6 +76,15 @@ outcome. No requests are retried automatically. After an interrupted POST or
 PATCH, the outcome may be unknown; search for the URL and read its current
 metadata before deciding whether to retry.
 
+## Delete a tag
+
+Use `linkding tags list --json` and pagination to identify the tag, then run
+`linkding tags delete 123 --json` with its positive ID. This deletes the tag
+and removes it from all bookmarks; the bookmarks remain. Success returns
+`{"status":"deleted","id":123}`. Linkding 1.46.0 or newer is required.
+An interrupted or failed delete may have succeeded; list tags and check the
+current state before retrying. Deletes are never retried automatically.
+
 ## Output and failures
 
 Always use `--json` for automation. Successful operations return one compact
@@ -91,4 +101,4 @@ Do not retry writes merely because a process returned a nonzero exit code.
 `save_bookmark` over stdio using the same API methods and result types.
 Choose the interface available in the current environment. MCP stdout is
 reserved for protocol messages. The Docker image defaults to the `mcp`
-command; append CLI arguments to use CLI instead.
+command; append CLI arguments to use CLI instead. Tag deletion is CLI-only.

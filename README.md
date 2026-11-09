@@ -1,6 +1,6 @@
 # Linkding
 
-A minimal local CLI and MCP server for one existing Linkding instance: search active or archived bookmarks, read notes and tags, and save or edit bookmark metadata. Both interfaces use the same API methods and result types. MCP transport: **stdio**. The program does not open a port.
+A minimal local CLI and MCP server for one existing Linkding instance: search active or archived bookmarks, read notes and tags, and save or edit bookmark metadata. The CLI also deletes tags. Shared operations use the same API methods and result types. MCP transport: **stdio**. The program does not open a port.
 
 ## Getting started
 
@@ -25,11 +25,14 @@ Without arguments, the binary shows help. `linkding mcp` starts the MCP server; 
 ./bin/linkding bookmarks list --archived --offset 20 --json
 ./bin/linkding bookmarks get 123 --json
 ./bin/linkding tags list --json
+./bin/linkding tags delete 123 --json
 ./bin/linkding skills get core
 ./bin/linkding schema bookmarks save --json
 ```
 
-Flags follow their resource and operation. `get` accepts its ID before or after flags. API operations return JSON: indented by default and compact with `--json`. Empty results succeed and contain `[]`. Exit codes: `0` success, `1` API/transport/configuration error, `2` invalid arguments or input, `130` interrupted. Help, version, skills, and schema work offline without credentials.
+Flags follow their resource and operation. `get` and `tags delete` accept their ID before or after flags. API operations return JSON: indented by default and compact with `--json`. Empty results succeed and contain `[]`. Exit codes: `0` success, `1` API/transport/configuration error, `2` invalid arguments or input, `130` interrupted. Help, version, skills, and schema work offline without credentials.
+
+`tags delete ID` deletes the tag and removes its associations from all bookmarks, leaving the bookmarks intact. List tags to find the positive ID. Success returns `{"status":"deleted","id":123}`. The API supports this operation since Linkding 1.46.0; see the [upstream change](https://github.com/sissbruecker/linkding/pull/1411). DELETE is never retried automatically. If a request is interrupted or fails, its outcome may be unknown: list tags and check the current state before retrying. This operation is CLI-only.
 
 Save or update metadata with exactly one JSON object on stdin:
 
@@ -45,7 +48,7 @@ JSON
 
 The input is limited to 2 MiB. Field names are case-sensitive; unknown or repeated fields, invalid types, and trailing JSON are rejected before HTTP. The save behavior, optional-field semantics, pagination, and search syntax below apply to both CLI and MCP. Only `url` is required. A supplied `tag_names` list replaces all manually assigned tags.
 
-`skills get core` serves the workflow guide embedded in the installed binary. `schema [resource operation] --json` returns the CLI input bindings and exact MCP input/output schemas, including descriptions and read-only hints, plus the CLI exit codes. It uses an in-memory SDK session without an API client or network connection. There is one workflow skill, `core`.
+`skills get core` serves the workflow guide embedded in the installed binary. `schema [resource operation] --json` returns CLI input bindings and MCP input/output schemas, including descriptions and read-only hints, plus the CLI exit codes. For the CLI-only `tags delete`, `tool` is null and `output_schema` describes its result separately. It uses an in-memory SDK session without an API client or network connection. There is one workflow skill, `core`.
 
 ### Native MCP
 

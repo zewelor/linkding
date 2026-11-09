@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 //go:embed docs/cli-core.md
 var coreSkill string
@@ -32,8 +32,9 @@ Commands:
   bookmarks get ID [--json]
   bookmarks save --input - [--json]    Read one save object from stdin
   tags list [--offset N] [--json]
+  tags delete ID [--json]            Delete a tag and its bookmark associations
   mcp                                Run the four MCP tools over stdio
-  schema [bookmarks list|get|save | tags list] [--json]
+  schema [bookmarks list|get|save | tags list|delete] [--json]
   skills list
   skills get core                    Version-matched agent instructions
   version
@@ -109,6 +110,8 @@ func runOperation(ctx context.Context, args []string) error {
 		usage = "Usage: linkding bookmarks list [--query QUERY] [--offset N] [--archived] [--json]\nSearch active bookmarks, or only the archive with --archived. Returns up to 20 items; count is the total."
 	case "tags list":
 		usage = "Usage: linkding tags list [--offset N] [--json]\nList up to 20 tags. Use offset for further pages."
+	case "tags delete":
+		usage = "Usage: linkding tags delete ID [--json]\nDelete a tag by positive ID and remove it from all bookmarks. Bookmarks remain.\nInterrupted deletes are not retried; list tags before trying again."
 	case "bookmarks get":
 		usage = "Usage: linkding bookmarks get ID [--json]\nRead one bookmark, including stored notes. ID must be positive."
 	case "bookmarks save":
@@ -136,7 +139,7 @@ func runOperation(ctx context.Context, args []string) error {
 		flags.BoolVar(&search.Archived, "archived", false, "search only the archive")
 	case "tags list":
 		flags.Int64Var(&tags.Offset, "offset", 0, "first result index")
-	case "bookmarks get":
+	case "bookmarks get", "tags delete":
 		// Accept the documented ID-before-flags form as well as flags-before-ID.
 		if len(remaining) > 0 && !strings.HasPrefix(remaining[0], "-") {
 			id, remaining = remaining[0], remaining[1:]
@@ -151,7 +154,7 @@ func runOperation(ctx context.Context, args []string) error {
 		_, err := fmt.Fprintln(os.Stdout, usage)
 		return err
 	}
-	if path == "bookmarks get" && id == "" && flags.NArg() == 1 {
+	if (path == "bookmarks get" || path == "tags delete") && id == "" && flags.NArg() == 1 {
 		id = flags.Arg(0)
 	} else if flags.NArg() != 0 {
 		return usageError("unexpected argument; run linkding " + path + " --help")
@@ -165,7 +168,7 @@ func runOperation(ctx context.Context, args []string) error {
 		if tags.Offset < 0 {
 			return usageError("offset must be nonnegative")
 		}
-	case "bookmarks get":
+	case "bookmarks get", "tags delete":
 		value, err := strconv.ParseInt(id, 10, 64)
 		if err != nil || value <= 0 {
 			return usageError("id must be a positive integer")
@@ -210,6 +213,12 @@ func runOperation(ctx context.Context, args []string) error {
 		result, err = c.listBookmarks(ctx, search)
 	case "tags list":
 		result, err = c.listTags(ctx, tags)
+	case "tags delete":
+		err = c.deleteTag(ctx, detail.ID)
+		result = struct {
+			Status string `json:"status"`
+			ID     int64  `json:"id"`
+		}{Status: "deleted", ID: detail.ID}
 	case "bookmarks get":
 		result, err = c.getBookmark(ctx, detail)
 	case "bookmarks save":

@@ -15,16 +15,17 @@ import (
 )
 
 type commandSchema struct {
-	Command string            `json:"command"`
-	Usage   string            `json:"usage"`
-	Inputs  map[string]string `json:"input_bindings"`
-	Tool    *mcp.Tool         `json:"tool"`
+	Command      string            `json:"command"`
+	Usage        string            `json:"usage"`
+	Inputs       map[string]string `json:"input_bindings"`
+	Tool         *mcp.Tool         `json:"tool"`
+	OutputSchema map[string]any    `json:"output_schema,omitempty"`
 }
 
 func runSchema(ctx context.Context, args []string) error {
 	for _, arg := range args {
 		if isHelp(arg) {
-			_, err := fmt.Fprintln(os.Stdout, "Usage: linkding schema [bookmarks list|get|save | tags list] [--json]\nDescribe CLI input bindings and the exact MCP input/output schemas. Always emits JSON, offline.")
+			_, err := fmt.Fprintln(os.Stdout, "Usage: linkding schema [bookmarks list|get|save | tags list|delete] [--json]\nDescribe CLI input bindings and the exact MCP input/output schemas where available. Always emits JSON, offline.")
 			return err
 		}
 	}
@@ -37,6 +38,7 @@ func runSchema(ctx context.Context, args []string) error {
 	bindings := map[string]map[string]string{
 		"bookmarks list": {"query": "--query", "offset": "--offset", "archived": "--archived"},
 		"tags list":      {"offset": "--offset"},
+		"tags delete":    {"id": "positional ID"},
 		"bookmarks get":  {"id": "positional ID"},
 		"bookmarks save": {"url": "stdin JSON", "title": "stdin JSON", "description": "stdin JSON", "notes": "stdin JSON", "tag_names": "stdin JSON"},
 	}
@@ -72,6 +74,17 @@ func runSchema(ctx context.Context, args []string) error {
 		if path == "" || path == command {
 			commands = append(commands, commandSchema{Command: command, Usage: usage, Inputs: bindings[command], Tool: tool})
 		}
+	}
+	if path == "" || path == "tags delete" {
+		// This CLI-only command has no MCP tool from which to obtain its schema.
+		commands = append(commands, commandSchema{
+			Command: "tags delete", Usage: "linkding tags delete ID [--json]", Inputs: bindings["tags delete"],
+			OutputSchema: map[string]any{
+				"type": "object", "required": []string{"status", "id"},
+				"properties": map[string]any{"status": map[string]any{"const": "deleted", "type": "string"},
+					"id": map[string]any{"type": "integer"}},
+			},
+		})
 	}
 	return json.NewEncoder(os.Stdout).Encode(struct {
 		Name       string            `json:"name"`

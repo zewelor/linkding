@@ -174,8 +174,14 @@ func (c *linkdingClient) do(req *http.Request, output any) error {
 	if req.Method == http.MethodPost {
 		expectedStatus = http.StatusCreated
 	}
+	if req.Method == http.MethodDelete {
+		expectedStatus = http.StatusNoContent
+	}
 	if resp.StatusCode != expectedStatus {
 		return fmt.Errorf("linkding http %d", resp.StatusCode)
+	}
+	if req.Method == http.MethodDelete {
+		return nil
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
 	if err != nil {
@@ -236,6 +242,21 @@ func (c *linkdingClient) listTags(ctx context.Context, input tagsInput) (tagsPag
 		return tagsPage{}, errors.New("invalid list response from linkding")
 	}
 	return tagsPage{Count: *response.Count, Results: response.Results[:min(len(response.Results), pageSize)]}, nil
+}
+
+func (c *linkdingClient) deleteTag(ctx context.Context, id int64) error {
+	if id <= 0 {
+		return errors.New("id must be positive")
+	}
+	u := c.base.JoinPath("api", "tags", strconv.FormatInt(id, 10))
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String()+"/", nil)
+	if err != nil {
+		return errors.New("could not construct tag delete request")
+	}
+	if err := c.do(req, nil); err != nil {
+		return fmt.Errorf("delete failed; outcome may be unknown: %w", err)
+	}
+	return nil
 }
 
 func (c *linkdingClient) getBookmark(ctx context.Context, input bookmarkInput) (bookmarkDetails, error) {

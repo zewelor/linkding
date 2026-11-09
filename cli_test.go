@@ -122,6 +122,10 @@ func TestCLIE2E(t *testing.T) {
 		{method: "GET", path: "/api/bookmarks/check/", query: checkQ, status: 200, reply: `{"bookmark":` + saved + `}`},
 		{method: "PATCH", path: "/api/bookmarks/42/", query: emptyQ, disconnect: true, body: `{"notes":"Interrupted"}`},
 		{method: "GET", path: "/api/tags/", query: q, status: 401, reply: fixtureToken},
+		{method: "DELETE", path: "/api/tags/39/", query: emptyQ, status: 204},
+		{method: "DELETE", path: "/api/tags/40/", query: emptyQ, status: 404, reply: fixtureToken},
+		{method: "DELETE", path: "/api/tags/41/", query: emptyQ, disconnect: true},
+		{method: "DELETE", path: "/api/tags/42/", query: emptyQ, status: 200, reply: `{}`},
 	}
 	entry := evidence{Name: "bookmark_workflow", Requests: []observation{}}
 	entry.Passed = t.Run(entry.Name, func(t *testing.T) {
@@ -202,6 +206,23 @@ func TestCLIE2E(t *testing.T) {
 		if got.ExitCode != 1 || got.Stdout != "" || !strings.Contains(got.Stderr, "http 401") {
 			t.Errorf("API error output: %+v", got)
 		}
+		got = run(t, base, "", "tags", "delete", "39", "--json")
+		if got.ExitCode != 0 || got.Stderr != "" {
+			t.Fatalf("delete failed: %+v", got)
+		}
+		compareJSON(t, []byte(got.Stdout), []byte(`{"status":"deleted","id":39}`))
+		got = run(t, base, "", "tags", "delete", "40", "--json")
+		if got.ExitCode != 1 || got.Stdout != "" || !strings.Contains(got.Stderr, "http 404") {
+			t.Errorf("missing tag output: %+v", got)
+		}
+		got = run(t, base, "", "tags", "delete", "41", "--json")
+		if got.ExitCode != 1 || got.Stdout != "" || !strings.Contains(got.Stderr, "outcome may be unknown") {
+			t.Errorf("interrupted deletion output: %+v", got)
+		}
+		got = run(t, base, "", "tags", "delete", "--json", "42")
+		if got.ExitCode != 1 || got.Stdout != "" || !strings.Contains(got.Stderr, "http 200") {
+			t.Errorf("unexpected delete response output: %+v", got)
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		if len(entry.Requests) != len(workflow) {
@@ -212,7 +233,7 @@ func TestCLIE2E(t *testing.T) {
 
 	for _, args := range [][]string{
 		{}, {"--help"}, {"--version"}, {"bookmarks", "--help"}, {"bookmarks", "save", "--help"},
-		{"mcp", "--help"}, {"skills", "list"}, {"skills", "get", "core"},
+		{"mcp", "--help"}, {"skills", "list"}, {"skills", "get", "core"}, {"tags", "delete", "--help"},
 	} {
 		entry := evidence{Name: "offline_" + strings.Join(args, "_"), Requests: []observation{}}
 		entry.Passed = t.Run(entry.Name, func(t *testing.T) {
@@ -233,6 +254,9 @@ func TestCLIE2E(t *testing.T) {
 		{name: "invalid_bool", args: []string{"bookmarks", "list", "--archived=yes"}},
 		{name: "duplicate_flag", args: []string{"tags", "list", "--offset", "1", "--offset", "2"}},
 		{name: "invalid_id", args: []string{"bookmarks", "get", "0"}},
+		{name: "delete_invalid_id", args: []string{"tags", "delete", "0"}},
+		{name: "delete_missing_id", args: []string{"tags", "delete"}},
+		{name: "delete_invalid_text", args: []string{"tags", "delete", "abc"}},
 		{name: "extra_argument", args: []string{"tags", "list", "extra"}},
 		{name: "mcp_json", args: []string{"mcp", "--json"}},
 		{name: "unknown_schema", args: []string{"schema", "bookmarks", "delete", "--json"}},
@@ -333,10 +357,13 @@ func TestCLIE2E(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(schema.Commands) != 4 || len(tools.Tools) != 4 {
+		if len(schema.Commands) != 5 || len(tools.Tools) != 4 {
 			t.Fatalf("command/tool inventory: %d/%d", len(schema.Commands), len(tools.Tools))
 		}
 		for _, command := range schema.Commands {
+			if command.Command == "tags delete" && command.Tool == nil {
+				continue
+			}
 			found := false
 			for _, tool := range tools.Tools {
 				if command.Tool != nil && tool.Name == command.Tool.Name {
@@ -353,6 +380,10 @@ func TestCLIE2E(t *testing.T) {
 		got = run(t, "", "", "schema", "bookmarks", "save", "--json")
 		if got.ExitCode != 0 || !json.Valid([]byte(got.Stdout)) {
 			t.Errorf("targeted schema output: %+v", got)
+		}
+		got = run(t, "", "", "schema", "tags", "delete", "--json")
+		if got.ExitCode != 0 || !strings.Contains(got.Stdout, `"command":"tags delete"`) {
+			t.Errorf("delete schema output: %+v", got)
 		}
 	})
 	report.Cases = append(report.Cases, entry)
