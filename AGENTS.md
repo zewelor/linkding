@@ -14,6 +14,6 @@
 - Use skills according to their scope; do not add frameworks, tools, or dependencies just because a skill mentions them. The project scope described in README takes precedence over community skills' default recommendations.
 - Subagents: independent, bounded analysis or review, read-only by default, without further delegation. Specify the scope, required evidence, and prohibition on edits. Integration, validation, and delivery remain the primary agent's responsibility.
 
-- Keep the scope small: no additional MCP tools, changing bookmark URLs, deleting or changing archive state, bundles, attachments, profiles, multiple instances, MCP HTTP transport, hosting, Compose, Renovate, release automation, or multiarch support without agreement. New settings and dependencies require a deliberate scope change.
+- Keep the scope small: no additional MCP tools, changing bookmark URLs, deleting or changing archive state, bundles, attachments, profiles, multiple instances, MCP HTTP transport, hosting, Compose, release automation, or multiarch support without agreement. New settings and dependencies require a deliberate scope change.
 
 - GHCR publishing: only on pushes to `main` after full CI; transfer the tested image to a separate job with `packages: write`, without rebuilding. Tags: `latest` and `sha-<full SHA>`. PRs must not publish. Do not interrupt an ongoing publication with a newer push.
