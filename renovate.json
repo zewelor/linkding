@@ -5,5 +5,13 @@
     "github>zewelor/renovate-config//presets/github-actions",
     "github>zewelor/renovate-config//presets/go"
   ],
-  "platformAutomerge": false
+  "platformAutomerge": false,
+  "packageRules": [
+    {
+      "description": "Preserve the rolling major version of just",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["just"],
+      "versioning": "semver-partial"
+    }
+  ]
 }
