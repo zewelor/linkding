@@ -29,7 +29,7 @@ jobs:
       - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
         with:
           just-version: '1.58.0'
-      - uses: immanuwell/dockerfile-roast@1c87b2aa189338c24db4acde40864dae8994de8f # v1.7.0
+      - uses: immanuwell/dockerfile-roast@1c87b2aa189338c24db4acde40864dae8994de8f # 1.7.0
         with:
           image-tag: 1.7.0@sha256:4f31be49f26804c0a2f8a0ab0ae578719e30376323e8fd5951c6dcc79a478b40
       - name: Check Go module files
