@@ -76,7 +76,7 @@ docker run --rm -i --pull=always \
 
 Use `-i` without `-t`. The image contains a static binary, its embedded CLI guide, CA certificates, and user `65532:65532`. It defaults to `mcp`; append arguments after the image name to use CLI, for example `bookmarks list --query '#go' --json`. The Linkding instance must be reachable from the container.
 
-`latest` is updated only after CI passes on `main`. The exact image tested by E2E is published, also with the tag `sha-<full commit SHA>`; the publishing job verifies that the image IDs match. Currently, Linux/amd64 is supported. `--pull=always` downloads the current image at every launch and requires GHCR to be available. For local development, use `just docker-build` (tag `linkding:e2e`).
+CI runs on pull requests and pushes to `main`. After CI passes, pushes to `main` publish the exact image tested by E2E as `latest` and `sha-<full commit SHA>`; the publishing job verifies that the image IDs match. This includes test-only and documentation-only pushes. Currently, Linux/amd64 is supported. `--pull=always` downloads the current image at every launch and requires GHCR to be available. For local development, use `just docker-build` (tag `linkding:e2e`).
 
 The container has no writable filesystem, additional capabilities, exposed ports, or host mounts. Docker's default seccomp/AppArmor filters apply where supported by the host. No additional CPU, memory, process, or ulimit restrictions are configured. Docker log persistence is disabled. Network access is required for Linkding's API; a regular bridge network does not restrict outbound access to a single domain.
 
