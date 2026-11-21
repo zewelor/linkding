@@ -16,4 +16,4 @@
 
 - Keep the scope small: no additional MCP tools, changing bookmark URLs, deleting or changing archive state, bundles, attachments, profiles, multiple instances, MCP HTTP transport, hosting, Compose, release automation, or multiarch support without agreement. New settings and dependencies require a deliberate scope change.
 
-- GHCR publishing: only on pushes to `main` after full CI; transfer the tested image to a separate job with `packages: write`, without rebuilding. Tags: `latest` and `sha-<full SHA>`. PRs must not publish. Do not interrupt an ongoing publication with a newer push.
+- GHCR publishing: only on pushes to `main` after full CI; transfer the tested image to a separate job with `packages: write`, without rebuilding. Tag: `latest`. PRs must not publish. Do not interrupt an ongoing publication with a newer push.
